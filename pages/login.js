@@ -1,0 +1,274 @@
+import { useState } from 'react';
+import { useRouter } from 'next/router';
+import styled from 'styled-components';
+import { motion } from 'framer-motion';
+import { FaGoogle, FaEnvelope, FaLock } from 'react-icons/fa';
+import Head from 'next/head';
+import { GoogleAuthProvider } from 'firebase/auth';
+import { auth, googleProvider } from '../lib/firebase';
+import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
+
+
+
+
+const LoginContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 1.5rem;
+`;
+
+const LoginCard = styled(motion.div)`
+  background: rgba(26, 26, 46, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  margin-bottom: 2rem;
+`;
+
+const Logo = styled.div`
+  text-align: center;
+  margin-bottom: 2rem;
+  
+  h1 {
+    color: #fff;
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  p {
+    color: #a0a0c0;
+    font-size: 0.9rem;
+  }
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+`;
+
+const InputGroup = styled.div`
+  position: relative;
+  
+  input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: white;
+    font-size: 1rem;
+    transition: all 0.3s;
+    
+    &:focus {
+      outline: none;
+      border-color: #7251b5;
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+  
+  svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.6);
+  }
+`;
+
+const Button = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem;
+  background: ${props => props.primary ? '#7251b5' : 'transparent'};
+  border: ${props => props.primary ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'};
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  
+  &:hover {
+    background: ${props => props.primary ? '#8862d6' : 'rgba(255, 255, 255, 0.1)'};
+  }
+`;
+
+const Divider = styled.div`
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+  
+  &::before, &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  span {
+    padding: 0 1rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+  }
+`;
+
+const Footer = styled.div`
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  
+  a {
+    color: #7251b5;
+    font-weight: 600;
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+`;
+
+export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const [error, setError]     = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      });
+      
+      if (result.error) {
+        alert('Erro ao fazer login: ' + result.error);
+      } else {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Erro ao fazer login:', error);
+      alert('Ocorreu um erro ao tentar fazer login.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      router.push('/profile');
+    } catch (err) {
+      console.error(err);
+      setError('Falha no login com Google.');
+    }
+  };
+
+
+ // Login com E-mail/Senha
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push('/profile');
+    } catch (err) {
+      console.error(err);
+      setError('E-mail ou senha incorretos.');
+    }
+  };
+
+
+
+
+  return (
+    <>
+      <Head>
+        <title>Login - Plenitude</title>
+        <meta name="description" content="Faça login no aplicativo de meditação cristã Plenitude" />
+      </Head>
+      
+      <LoginContainer>
+        <LoginCard
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Logo>
+            <h1>Plenitude</h1>
+            <p>Paz e reflexão para seu dia</p>
+          </Logo>
+          
+          <Form onSubmit={handleSubmit}>
+            <InputGroup>
+              <FaEnvelope />
+              <input
+                type="email"
+                placeholder="E-mail"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </InputGroup>
+            
+            <InputGroup>
+              <FaLock />
+              <input
+                type="password"
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </InputGroup>
+            
+            <Button
+              primary
+              type="submit"
+              disabled={loading}
+              whileTap={{ scale: 0.95 }}
+            >
+              {loading ? 'Entrando...' : 'Entrar'}
+            </Button>
+          </Form>
+          
+          <Divider>
+            <span>ou</span>
+          </Divider>
+          
+          <Button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleGoogleLogin}
+          >
+            <FaGoogle />
+            Continuar com Google
+          </Button>
+          
+          <Footer style={{ marginTop: '2rem' }}>
+            Não tem uma conta? <a href="#">Cadastre-se</a>
+          </Footer>
+        </LoginCard>
+      </LoginContainer>
+    </>
+  );
+}
