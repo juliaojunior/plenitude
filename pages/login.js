@@ -7,7 +7,22 @@ import Head from 'next/head';
 import { GoogleAuthProvider } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
+import Image from 'next/image';
 
+const IconContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7251b5, #5e72e4);
+  margin: 0 auto 1.5rem auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden; /* Para garantir que a imagem fique dentro do círculo */
+`;
 
 
 
@@ -154,6 +169,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     
     try {
       const result = await signIn('credentials', {
@@ -214,6 +230,16 @@ export default function Login() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+
+        <IconContainer>
+          <Image 
+             src="/images/plenitude-icon-transp.png" 
+             alt="Ícone de Meditação" 
+             width={40} 
+             height={40}
+          />
+          </IconContainer>
+
           <Logo>
             <h1>Plenitude</h1>
             <p>Paz e reflexão para seu dia</p>

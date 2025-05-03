@@ -10,8 +10,14 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    // libera o domínio dos avatares do Google para o <Image> do Next.js
-    domains: ['lh3.googleusercontent.com'],
+    // Substituindo domains por remotePatterns (configuração recomendada)
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+    ],
   },
   compiler: {
     styledComponents: true,
