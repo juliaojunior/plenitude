@@ -1,0 +1,12 @@
+# Vá para a pasta do seu projeto (se ainda não estiver nela)
+cd caminho/para/seu/projeto
+
+# Adicione todas as alterações ao próximo commit
+git add .
+
+# Faça um commit com suas alterações
+git commit -m "Corrigido links de navegação e adicionadas novas páginas"
+
+
+# Envie as altgeraçãos para o GitHub
+git push
