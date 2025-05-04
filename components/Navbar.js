@@ -1,86 +1,84 @@
-import { useState } from 'react';
-import { useRouter } from 'next/router';
+import React from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import { FaHome, FaSearch, FaHeart, FaUser } from 'react-icons/fa';
+import { FaHome, FaSearch, FaBookmark, FaUser } from 'react-icons/fa';
+import { useRouter } from 'next/router';
 
 const NavbarContainer = styled.nav`
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(26, 26, 46, 0.9);
+  background: rgba(26, 26, 46, 0.95);
   backdrop-filter: blur(10px);
   display: flex;
   justify-content: space-around;
   padding: 0.8rem 0;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 1000;
+  z-index: 100;
 `;
 
-const NavItem = styled(motion.button)`
+const NavItem = styled.button`
+  background: transparent;
+  border: none;
+  color: ${props => props.active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
+  font-size: 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: none;
-  border: none;
-  color: ${props => props.active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
-  font-size: 0.7rem;
   cursor: pointer;
-  transition: color 0.3s;
-  
-  svg {
-    font-size: 1.2rem;
-    margin-bottom: 0.3rem;
+  transition: color 0.2s;
+
+  span {
+    font-size: 0.7rem;
+    margin-top: 0.2rem;
+  }
+
+  &:hover {
+    color: ${props => props.active ? '#7251b5' : 'rgba(255, 255, 255, 0.8)'};
   }
 `;
 
 export default function Navbar() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('/');
-  
-  const handleNavigation = (path) => {
-    setActiveTab(path);
-    router.push(path);
+  const path = router.pathname;
+
+  const isActive = (route) => {
+    return path === route;
   };
-  
+
+  const navigate = (route) => {
+    router.push(route);
+  };
+
   return (
-    <NavbarContainer>
-      <NavItem
-        whileTap={{ scale: 0.9 }}
-        active={activeTab === '/'}
-        onClick={() => handleNavigation('/')}
+    
+       navigate('/')} 
+        active={isActive('/')}
       >
-        <FaHome />
-        <span>Início</span>
-      </NavItem>
+        
+        Início
       
-      <NavItem
-        whileTap={{ scale: 0.9 }}
-        active={activeTab === '/discover'}
-        onClick={() => handleNavigation('/discover')}
-      >
-        <FaSearch />
-        <span>Descobrir</span>
-      </NavItem>
       
-      <NavItem
-        whileTap={{ scale: 0.9 }}
-        active={activeTab === '/favorites'}
-        onClick={() => handleNavigation('/favorites')}
+       navigate('/explore')} 
+        active={isActive('/explore')}
       >
-        <FaHeart />
-        <span>Favoritos</span>
-      </NavItem>
+        
+        Explorar
       
-      <NavItem
-        whileTap={{ scale: 0.9 }}
-        active={activeTab === '/profile'}
-        onClick={() => handleNavigation('/profile')}
+      
+       navigate('/saved')} 
+        active={isActive('/saved')}
       >
-        <FaUser />
-        <span>Perfil</span>
-      </NavItem>
-    </NavbarContainer>
+        
+        Salvos
+      
+      
+       navigate('/profile')} 
+        active={isActive('/profile')}
+      >
+        
+        Perfil
+      
+    
   );
 }

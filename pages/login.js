@@ -233,10 +233,10 @@ export default function Login() {
 
         <IconContainer>
           <Image 
-             src="/images/plenitude-icon-transp.png" 
+             src="/images/plenitude-icon.png" 
              alt="Ícone de Meditação" 
-             width={40} 
-             height={40}
+             width={80} 
+             height={80}
           />
           </IconContainer>
 
