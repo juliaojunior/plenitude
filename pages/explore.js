@@ -165,7 +165,7 @@ const NavbarContainer = styled.nav`
 const NavItem = styled.button`
   background: transparent;
   border: none;
-  color: ${props => props.active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -289,7 +289,7 @@ export default function Explore() {
             <FaHome />
             <span>Início</span>
           </NavItem>
-          <NavItem active>
+          <NavItem $active={true}>
             <FaSearch />
             <span>Explorar</span>
           </NavItem>

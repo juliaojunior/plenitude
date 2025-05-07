@@ -1,3 +1,4 @@
+import { createUserProfile } from '../lib/user';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import styled from 'styled-components';
@@ -110,8 +111,8 @@ const Button = styled(motion.button)`
   gap: 0.5rem;
   width: 100%;
   padding: 1rem;
-  background: ${props => props.primary ? '#7251b5' : 'transparent'};
-  border: ${props => props.primary ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'};
+  background: ${props => props.$primary ? '#7251b5' : 'transparent'};
+  border: ${props => props.$primary ? 'none' : '1px solid rgba(255, 255, 255, 0.2)'};
   border-radius: 10px;
   color: white;
   font-weight: 600;
@@ -120,7 +121,7 @@ const Button = styled(motion.button)`
   transition: all 0.3s;
   
   &:hover {
-    background: ${props => props.primary ? '#8862d6' : 'rgba(255, 255, 255, 0.1)'};
+    background: ${props => props.$primary ? '#8862d6' : 'rgba(255, 255, 255, 0.1)'};
   }
 `;
 
@@ -191,29 +192,60 @@ export default function Login() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      router.push('/profile');
-    } catch (err) {
-      console.error(err);
-      setError('Falha no login com Google.');
+
+// Login social com Google
+const handleGoogleLogin = async () => {
+  try {
+    // Primeiro, faça logout para garantir que não há sessão anterior
+    await auth.signOut();
+    
+    // Configure o provedor do Google para sempre mostrar a tela de seleção de conta
+    googleProvider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
+    // Agora faça login com o Google
+    const result = await signInWithPopup(auth, googleProvider);
+    
+    // Criar/atualizar perfil
+    if (result.user) {
+      // Verifique se a função está definida antes de chamá-la
+      if (typeof createUserProfile === 'function') {
+        await createUserProfile(result.user);
+      } else {
+        console.error("Função createUserProfile não definida!");
+      }
+      
+      // Redirecionar para a página principal
+      router.push('/');
     }
-  };
+  } catch (err) {
+    console.error("Erro ao fazer login com Google:", err);
+    setError('Falha no login com Google. ' + err.message);
+  }
+};
+
 
 
  // Login com E-mail/Senha
-  const handleEmailLogin = async (e) => {
-    e.preventDefault();
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/profile');
-    } catch (err) {
-      console.error(err);
-      setError('E-mail ou senha incorretos.');
-    }
-  };
-
+const handleEmailLogin = async (e) => {
+  e.preventDefault();
+  try {
+    // Fazer login com email/senha
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    
+    // Criar/atualizar perfil
+    await createUserProfile(result.user);
+    
+    // Redirecionar para a página principal
+    router.push('/');
+  } catch (err) {
+    console.error("Erro no login:", err);
+    setError('E-mail ou senha incorretos.');
+  } finally {
+    setLoading(false);
+  }
+};
 
 
 
@@ -269,7 +301,7 @@ export default function Login() {
             </InputGroup>
             
             <Button
-              primary
+              $primary={true}
               type="submit"
               disabled={loading}
               whileTap={{ scale: 0.95 }}

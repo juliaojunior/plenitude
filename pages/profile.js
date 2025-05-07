@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { isAdmin } from '../lib/firestore';
+import { FaUserShield } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
@@ -10,6 +12,9 @@ import {
 import { auth } from '../lib/firebase';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+
 
 // Componentes estilizados
 const Container = styled.div`
@@ -43,6 +48,29 @@ const ProfileAvatar = styled.div`
   position: relative;
   overflow: hidden;
 `;
+
+const AdminButton = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem;
+  background: #7251b5;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  
+  svg {
+    font-size: 1.1rem;
+  }
+`;
+
+
 
 const ProfileInfo = styled.div`
   flex: 1;
@@ -207,7 +235,7 @@ const NavbarContainer = styled.nav`
 const NavItem = styled.button`
   background: transparent;
   border: none;
-  color: ${props => props.active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -221,141 +249,202 @@ const NavItem = styled.button`
 `;
 
 // Componente Navbar corrigido
-const Navbar = () => (
+const Navbar = ({ router }) => (
   <NavbarContainer>
     <NavItem onClick={() => router.push('/')}>
       <FaHome />
       <span>Início</span>
     </NavItem>
-    <NavItem>
+    <NavItem onClick={() => router.push('/explore')}>
       <FaSearch />
       <span>Explorar</span>
     </NavItem>
-    <NavItem>
+    <NavItem onClick={() => router.push('/saved')}>
       <FaBookmark />
       <span>Salvos</span>
     </NavItem>
-    <NavItem active>
+    <NavItem $active={true}>
       <FaUser />
       <span>Perfil</span>
     </NavItem>
   </NavbarContainer>
 );
 
+
+
 export default function Profile() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
+  
+  useEffect(() => {
+    // Função para buscar dados do usuário atual
+    const fetchUserData = async () => {
+      try {
+        // Verificar se há um usuário autenticado
+        const currentUser = auth.currentUser;
+        
+        if (!currentUser) {
+          console.log("Nenhum usuário autenticado, redirecionando para login");
+          router.push('/login');
+          return;
+        }
+        
+        console.log("Buscando dados para o usuário:", currentUser.uid);
+        
+        // Buscar os dados do Firestore
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          // Combinar dados do Auth e do Firestore
+          setUser({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName || userDoc.data().displayName || 'Usuário',
+            photoURL: currentUser.photoURL,
+            ...userDoc.data()
+          });
+          console.log("Dados do usuário carregados com sucesso");
+        } else {
+          console.log("Documento do usuário não encontrado no Firestore");
+          // Usar apenas os dados básicos do Auth
+          setUser({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName || 'Usuário',
+            photoURL: currentUser.photoURL
+          });
+        }
 
+        // Verificar se o usuário é administrador
+        const adminStatus = await isAdmin();
+        setIsUserAdmin(adminStatus);
+        console.log("Status de administrador:", adminStatus);
+
+        
+        setLoading(false);
+      } catch (err) {
+        console.error("Erro ao buscar dados do usuário:", err);
+        setError("Erro ao carregar perfil. " + err.message);
+        setLoading(false);
+      }
+    };
+    
+    // Configure um listener para mudanças de autenticação
+    const unsubscribe = auth.onAuthStateChanged((authUser) => {
+      if (authUser) {
+        console.log("Auth state changed, user logged in:", authUser.uid);
+        fetchUserData();
+      } else {
+        console.log("Auth state changed, no user, redirecting to login");
+        router.push('/login');
+      }
+    });
+    
+    // Limpar o listener
+    return () => unsubscribe();
+  }, [router]);
+  
   const handleLogout = async () => {
-    setLoading(true);
     try {
       await auth.signOut();
       router.push('/login');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
-      alert('Ocorreu um erro ao fazer logout.');
-    } finally {
-      setLoading(false);
     }
   };
-
+  
+  if (loading) {
+    return (
+      <Container>
+        <div style={{ color: 'white', textAlign: 'center', marginTop: '2rem' }}>
+          Carregando...
+        </div>
+      </Container>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Container>
+        <div style={{ color: '#ff6b6b', textAlign: 'center', marginTop: '2rem' }}>
+          {error}
+        </div>
+      </Container>
+    );
+  }
+  
   return (
     <>
       <Head>
         <title>Perfil - Plenitude</title>
         <meta name="description" content="Seu perfil no aplicativo de meditação cristã" />
       </Head>
-
+      
       <Container>
         <ProfileHeader>
           <ProfileAvatar>
-            {/* Se tiver URL da foto do usuário */}
-            {/*  */}
-            <FaUser />
-            {/* Ícone padrão caso não tenha foto */}
+            {user?.photoURL ? (
+              <img 
+                src={user.photoURL} 
+                alt="Foto de perfil" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <FaUser />
+            )}
           </ProfileAvatar>
-
           <ProfileInfo>
-            <h2>Maria Silva</h2>
-            <p>maria.silva@exemplo.com</p>
-            <ProfileBadge>Premium</ProfileBadge>
+            <h2>{user?.displayName || 'Usuário'}</h2>
+            <p>{user?.email}</p>
+            {/* Apresentar distintivo Premium se aplicável */}
+            {user?.isPremium && <ProfileBadge>Premium</ProfileBadge>}
           </ProfileInfo>
         </ProfileHeader>
-
+        
         <StatsSection>
           <StatsTitle>Sua Jornada</StatsTitle>
           <StatsGrid>
             <StatsCard>
-              <StatsValue>28</StatsValue>
+              <StatsValue>{user?.streakCount || 0}</StatsValue>
               <StatsLabel>Dias Consecutivos</StatsLabel>
             </StatsCard>
             <StatsCard>
-              <StatsValue>126</StatsValue>
+              <StatsValue>{user?.meditationCount || 0}</StatsValue>
               <StatsLabel>Meditações</StatsLabel>
             </StatsCard>
             <StatsCard>
-              <StatsValue>42h</StatsValue>
-              <StatsLabel>Tempo Total</StatsLabel>
+              <StatsValue>{user?.totalMinutes || 0}</StatsValue>
+              <StatsLabel>Minutos</StatsLabel>
             </StatsCard>
           </StatsGrid>
         </StatsSection>
 
-        <PreferencesList>
-          <PreferenceItem>
-            <FaBell />
-            <PreferenceText>
-              <h3>Lembretes</h3>
-              <p>Diariamente às 07:00</p>
-            </PreferenceText>
-            <Toggle />
-          </PreferenceItem>
+        {/* Botão de Administrador - só aparece se o usuário for admin */}
+        {isUserAdmin && (
+          <AdminButton 
+            onClick={() => router.push('/admin')}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <FaUserShield />
+            Painel de Administração
+          </AdminButton>
+        )}
 
-          <PreferenceItem>
-            <FaMoon />
-            <PreferenceText>
-              <h3>Modo Noturno</h3>
-              <p>Ativado</p>
-            </PreferenceText>
-            <Toggle checked />
-          </PreferenceItem>
 
-          <PreferenceItem>
-            <FaDownload />
-            <PreferenceText>
-              <h3>Download de Meditações</h3>
-              <p>Apenas em Wi-Fi</p>
-            </PreferenceText>
-            <Toggle checked />
-          </PreferenceItem>
-        </PreferencesList>
-
-        <LogoutButton onClick={handleLogout} whileTap={{ scale: 0.95 }}>
+        <LogoutButton 
+          onClick={handleLogout}
+          whileTap={{ scale: 0.95 }}
+        >
           <FaSignOutAlt />
-          {loading ? 'Saindo...' : 'Sair'}
+          Sair
         </LogoutButton>
-
-        {/* Navbar incorporada como componente */}
-        <NavbarContainer>
-          <NavItem onClick={() => router.push('/')}>
-            <FaHome />
-            <span>Início</span>
-          </NavItem>
-          <NavItem onClick={() => router.push('/explore')}>
-            <FaSearch />
-            <span>Explorar</span>
-          </NavItem>
-          <NavItem onClick={() => router.push('/saved')}>
-            <FaBookmark />
-            <span>Salvos</span>
-          </NavItem>
-          <NavItem active>
-            <FaUser />
-            <span>Perfil</span>
-          </NavItem>
-        </NavbarContainer>
-
-
-
+        
+        <Navbar router={router} />
       </Container>
     </>
   );

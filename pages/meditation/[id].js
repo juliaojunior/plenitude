@@ -41,7 +41,7 @@ const HeaderActions = styled.div`
 const ActionButton = styled.button`
   background: transparent;
   border: none;
-  color: ${props => props.active ? '#7251b5' : 'white'};
+  color: ${props => props.$active={true} ? '#7251b5' : 'white'};
   font-size: 1.3rem;
   cursor: pointer;
 `;
@@ -124,16 +124,16 @@ const PlayerControls = styled.div`
 
 // Botões de controle (do seu código original)
 const ControlButton = styled(motion.button)`
-  background: ${props => props.primary ? '#7251b5' : 'transparent'};
-  border: ${props => props.primary ? 'none' : '2px solid #7251b5'};
-  width: ${props => props.primary ? '60px' : '50px'};
-  height: ${props => props.primary ? '60px' : '50px'};
+  background: ${props => props.$primary ? '#7251b5' : 'transparent'};
+  border: ${props => props.$primary ? 'none' : '2px solid #7251b5'};
+  width: ${props => props.$primary ? '60px' : '50px'};
+  height: ${props => props.$primary ? '60px' : '50px'};
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: ${props => props.primary ? '1.5rem' : '1.2rem'};
+  font-size: ${props => props.$primary ? '1.5rem' : '1.2rem'};
   cursor: pointer;
 `;
 
@@ -195,7 +195,7 @@ const NavbarContainer = styled.nav`
 const NavItem = styled.button`
   background: transparent;
   border: none;
-  color: ${props => props.active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -375,7 +375,7 @@ export default function MeditationDetail() {
               <FaRedo />
             </ControlButton>
             <ControlButton 
-              primary
+              $primary={true}
               whileHover={{ scale: 1.1 }} 
               whileTap={{ scale: 0.9 }}
               onClick={togglePlay}

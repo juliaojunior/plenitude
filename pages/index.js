@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FaBook, FaHeart, FaBrain, FaDove, FaHome, FaSearch, FaBookmark, FaUser } from 'react-icons/fa';
-import { useRouter } from 'next/router'; // Adicionei importação do router
+import { FaHome, FaSearch, FaBookmark, FaUser, FaBrain, FaHeart, FaDove, FaBook } from 'react-icons/fa';
+import { useRouter } from 'next/router';
+// Importações do Firebase (comente se ainda não estiver configurado)
+// import { getDailyMana, getAllCategories, getMeditationHistory } from '../lib/firestore';
 
 // Componentes estilizados
 const Container = styled.div`
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   padding: 1rem;
-  padding-bottom: 5rem; // Espaço para a navbar
+  padding-bottom: 5rem;
 `;
 
 const Section = styled.section`
@@ -166,12 +168,13 @@ const NavbarContainer = styled.nav`
   justify-content: space-around;
   padding: 0.8rem 0;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 100;
 `;
 
 const NavItem = styled.button`
   background: transparent;
   border: none;
-  color: ${props => props.active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$active ? '#7251b5' : 'rgba(255, 255, 255, 0.6)'};
   font-size: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -184,7 +187,37 @@ const NavItem = styled.button`
   }
 `;
 
-// Componentes funcionais corrigidos
+// Componentes adicionais que estavam faltando
+const LoadingState = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  color: white;
+  font-size: 1.2rem;
+`;
+
+const ErrorState = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  color: #ff6b6b;
+  font-size: 1.2rem;
+  text-align: center;
+  padding: 0 2rem;
+`;
+
+const EmptyMessage = styled.div`
+  color: #a0a0c0;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(30, 30, 60, 0.4);
+  border-radius: 12px;
+  line-height: 1.5;
+`;
+
+// Componente funcional ManaDaily
 const ManaDaily = ({ verse, reference, reflection }) => (
   <ManaContainer
     initial={{ opacity: 0, y: 20 }}
@@ -193,141 +226,179 @@ const ManaDaily = ({ verse, reference, reflection }) => (
   >
     <ManaTitle>Maná Diário</ManaTitle>
     <VersiculoContainer>
-      <Versiculo>"{verse}"</Versiculo>
-      <Referencia>{reference}</Referencia>
+      <Versiculo>{verse || "Não andem ansiosos por coisa alguma, mas em tudo, pela oração e súplicas, e com ação de graças, apresentem seus pedidos a Deus."}</Versiculo>
+      <Referencia>{reference || "Filipenses 4:6-7"}</Referencia>
     </VersiculoContainer>
     <ReflexaoTitle>Reflexão</ReflexaoTitle>
-    <ReflexaoText>{reflection}</ReflexaoText>
+    <ReflexaoText>
+      {reflection || "Mesmo nos momentos de maior tribulação, Deus nos convida a buscar refúgio Nele através da oração. Quando entregamos nossas preocupações a Deus, recebemos em troca uma paz que transcende nossa compreensão."}
+    </ReflexaoText>
   </ManaContainer>
 );
 
+// Dados temporários (usados até implementar Firebase)
+const categories = [
+  { id: 'anxiety', title: 'Ansiedade', icon: <FaBrain />, color: '#7251b5' },
+  { id: 'gratitude', title: 'Gratidão', icon: <FaHeart />, color: '#e74c3c' },
+  { id: 'peace', title: 'Paz', icon: <FaDove />, color: '#3498db' },
+  { id: 'wisdom', title: 'Sabedoria', icon: <FaBook />, color: '#f1c40f' }
+];
+
+const popularMeditations = [
+  { 
+    id: 'med1', 
+    title: 'Libertando-se da Ansiedade', 
+    scripture: 'Filipenses 4:6-7',
+    category: 'Ansiedade',
+    duration: '15 min',
+    date: 'Hoje'
+  },
+  { 
+    id: 'med2', 
+    title: 'Cultivando Gratidão Diária', 
+    scripture: '1 Tessalonicenses 5:18',
+    category: 'Gratidão',
+    duration: '10 min',
+    date: 'Ontem'
+  },
+  { 
+    id: 'med3', 
+    title: 'Encontrando Paz em Meio à Tempestade', 
+    scripture: 'João 14:27',
+    category: 'Paz',
+    duration: '20 min',
+    date: '3 dias atrás'
+  }
+];
+
 export default function Home() {
-  const router = useRouter(); // Adicionei o router
+  const router = useRouter();
+  const [loading, setLoading] = useState(false); // mude para true quando implementar Firebase
+  const [error, setError] = useState(null);
+  const [manaDaily, setManaDaily] = useState(null);
+  const [meditationCategories, setMeditationCategories] = useState(categories);
+  const [recentMeditations, setRecentMeditations] = useState(popularMeditations);
+  
+  /* Descomente quando implementar Firebase
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Buscar o maná diário
+        const mana = await getDailyMana();
+        setManaDaily(mana);
+        
+        // Buscar categorias
+        const cats = await getAllCategories();
+        setMeditationCategories(cats.length > 0 ? cats : categories);
+        
+        // Buscar histórico recente
+        const history = await getMeditationHistory(3);
+        setRecentMeditations(history.length > 0 ? history : popularMeditations);
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        setError('Não foi possível carregar os dados.');
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+  */
   
   return (
     <>
       <Head>
         <title>Plenitude - Meditação Cristã</title>
-        <meta name="description" content="Aplicativo de meditação cristã para paz interior" />
+        <meta name="description" content="Aplicativo de meditação cristã para paz interior e reflexão" />
       </Head>
 
       <Container>
-        <ManaDaily 
-          verse="Não andem ansiosos por coisa alguma, mas em tudo, pela oração e súplicas, e com ação de graças, apresentem seus pedidos a Deus. E a paz de Deus, que excede todo o entendimento, guardará o coração e a mente de vocês em Cristo Jesus."
-          reference="Filipenses 4:6-7"
-          reflection="Mesmo nos momentos de maior tribulação, Deus nos convida a buscar refúgio Nele através da oração. Quando entregamos nossas preocupações a Deus, recebemos em troca uma paz que transcende nossa compreensão."
-        />
-        
-        <Section>
-          <SectionTitle>Categorias</SectionTitle>
-          <CategoryGrid>
-            <CategoryCard 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <IconBackground color="#7251b5">
-                <FaBrain />
-              </IconBackground>
-              <CategoryTitle>Ansiedade</CategoryTitle>
-            </CategoryCard>
+        {loading ? (
+          <LoadingState>Carregando...</LoadingState>
+        ) : error ? (
+          <ErrorState>{error}</ErrorState>
+        ) : (
+          <>
+            {/* Maná Diário */}
+            <ManaDaily 
+              verse={manaDaily?.verse}
+              reference={manaDaily?.reference}
+              reflection={manaDaily?.reflection}
+            />
             
-            <CategoryCard 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <IconBackground color="#e74c3c">
-                <FaHeart />
-              </IconBackground>
-              <CategoryTitle>Gratidão</CategoryTitle>
-            </CategoryCard>
+            {/* Seção Categorias */}
+            <Section>
+              <SectionTitle>Categorias</SectionTitle>
+              <CategoryGrid>
+                {meditationCategories.map(category => (
+                  <CategoryCard 
+                    key={category.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => router.push(`/category/${category.id}`)}
+                  >
+                    <IconBackground color={category.color}>
+                      {category.icon}
+                    </IconBackground>
+                    <CategoryTitle>{category.title}</CategoryTitle>
+                  </CategoryCard>
+                ))}
+              </CategoryGrid>
+            </Section>
             
-            <CategoryCard 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <IconBackground color="#3498db">
-                <FaDove />
-              </IconBackground>
-              <CategoryTitle>Paz</CategoryTitle>
-            </CategoryCard>
+            {/* Últimas Meditações */}
+            <Section>
+              <SectionTitle>Últimas Meditações</SectionTitle>
+              {recentMeditations.length > 0 ? (
+                <MeditationList>
+                  {recentMeditations.map(meditation => (
+                    <MeditationItem
+                      key={meditation.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => router.push(`/meditation/${meditation.id}`)}
+                    >
+                      <MeditationInfo>
+                        <MeditationTitle>{meditation.title}</MeditationTitle>
+                        <MeditationScripture>{meditation.scripture}</MeditationScripture>
+                      </MeditationInfo>
+                      <MeditationMeta>
+                        <MeditationDate>{meditation.date}</MeditationDate>
+                        <MeditationDuration>{meditation.duration}</MeditationDuration>
+                      </MeditationMeta>
+                    </MeditationItem>
+                  ))}
+                </MeditationList>
+              ) : (
+                <EmptyMessage>
+                  Ainda não há histórico de meditações. Comece sua jornada hoje!
+                </EmptyMessage>
+              )}
+            </Section>
             
-            <CategoryCard 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <IconBackground color="#f1c40f">
-                <FaBook />
-              </IconBackground>
-              <CategoryTitle>Sabedoria</CategoryTitle>
-            </CategoryCard>
-          </CategoryGrid>
-        </Section>
-        
-        <Section>
-          <SectionTitle>Últimas Meditações</SectionTitle>
-          <MeditationList>
-            <MeditationItem
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <MeditationInfo>
-                <MeditationTitle>Confiança em Deus</MeditationTitle>
-                <MeditationScripture>Salmos 23</MeditationScripture>
-              </MeditationInfo>
-              <MeditationMeta>
-                <MeditationDate>Hoje</MeditationDate>
-                <MeditationDuration>15 min</MeditationDuration>
-              </MeditationMeta>
-            </MeditationItem>
-            
-            <MeditationItem
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <MeditationInfo>
-                <MeditationTitle>Gratidão Diária</MeditationTitle>
-                <MeditationScripture>1 Tessalonicenses 5:18</MeditationScripture>
-              </MeditationInfo>
-              <MeditationMeta>
-                <MeditationDate>Ontem</MeditationDate>
-                <MeditationDuration>10 min</MeditationDuration>
-              </MeditationMeta>
-            </MeditationItem>
-            
-            <MeditationItem
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <MeditationInfo>
-                <MeditationTitle>Superando o Medo</MeditationTitle>
-                <MeditationScripture>Isaías 41:10</MeditationScripture>
-              </MeditationInfo>
-              <MeditationMeta>
-                <MeditationDate>3 dias atrás</MeditationDate>
-                <MeditationDuration>20 min</MeditationDuration>
-              </MeditationMeta>
-            </MeditationItem>
-          </MeditationList>
-        </Section>
-        
-        <NavbarContainer>
-          <NavItem active>
-            <FaHome />
-            <span>Início</span>
-          </NavItem>
-          <NavItem onClick={() => router.push('/explore')}>
-            <FaSearch />
-            <span>Explorar</span>
-          </NavItem>
-          <NavItem onClick={() => router.push('/saved')}>
-            <FaBookmark />
-            <span>Salvos</span>
-          </NavItem>
-          <NavItem onClick={() => router.push('/profile')}>
-            <FaUser />
-            <span>Perfil</span>
-          </NavItem>
-        </NavbarContainer>
+            {/* Navbar */}
+            <NavbarContainer>
+              <NavItem $active={true}>
+                <FaHome />
+                <span>Início</span>
+              </NavItem>
+              <NavItem onClick={() => router.push('/explore')}>
+                <FaSearch />
+                <span>Explorar</span>
+              </NavItem>
+              <NavItem onClick={() => router.push('/saved')}>
+                <FaBookmark />
+                <span>Salvos</span>
+              </NavItem>
+              <NavItem onClick={() => router.push('/profile')}>
+                <FaUser />
+                <span>Perfil</span>
+              </NavItem>
+            </NavbarContainer>
+          </>
+        )}
       </Container>
     </>
   );

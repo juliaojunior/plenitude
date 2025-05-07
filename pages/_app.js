@@ -1,21 +1,34 @@
-import { SessionProvider } from 'next-auth/react';
-import Head from 'next/head';
+// pages/_app.js
+import { useEffect } from 'react';
+import { auth } from '../lib/firebase';
+import { createUserProfile } from '../lib/user';
+import { onAuthStateChanged } from 'firebase/auth';
 import '../styles/globals.css';
 
-function MyApp({ Component, pageProps: { session, ...pageProps } }) {
-  return (
-    <SessionProvider session={session}>
-      <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <meta name="description" content="Aplicativo de meditação cristã para paz e reflexão" />
-        <meta name="theme-color" content="#1a1a2e" />
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <title>PlenitudeMeditação Cristã</title>
-      </Head>
-      <Component {...pageProps} />
-    </SessionProvider>
-  );
+function MyApp({ Component, pageProps }) {
+  useEffect(() => {
+    // Configurar listener de autenticação
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Usuário está logado
+        console.log("Usuário detectado:", user.uid);
+        
+        // Criar/atualizar perfil
+        try {
+          await createUserProfile(user);
+        } catch (err) {
+          console.error("Erro ao criar perfil:", err);
+        }
+      } else {
+        console.log("Nenhum usuário logado");
+      }
+    });
+    
+    // Limpar listener ao desmontar
+    return () => unsubscribe();
+  }, []);
+  
+  return <Component {...pageProps} />;
 }
 
 export default MyApp;
