@@ -338,7 +338,7 @@ export default function MeditationDetail() {
           </BackButton>
           <HeaderActions>
             <ActionButton 
-              active={isFavorite} 
+              $active={isFavorite} 
               onClick={toggleFavorite}
             >
               <FaHeart />
