@@ -41,7 +41,7 @@ const HeaderActions = styled.div`
 const ActionButton = styled.button`
   background: transparent;
   border: none;
-  color: ${props => props.$active={true} ? '#7251b5' : 'white'};
+  color: ${props => props.$active ? '#7251b5' : 'white'};
   font-size: 1.3rem;
   cursor: pointer;
 `;
